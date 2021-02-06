@@ -1,65 +1,66 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import React, { useState } from "react";
+import { withRouter } from "next/router";
+import { findResultsState } from "react-instantsearch-dom/server";
+import App from "../src/App";
+import {
+  DEFAULT_PROPS,
+  pathToSearchState,
+  searchStateToURL,
+  createURL,
+  DEBOUNCE_TIME,
+} from "../utils";
 
-export default function Home() {
+// https://codesandbox.io/s/nextjs-instantsearch-ohphp?file=/pages/index.js
+// https://github.com/algolia/react-instantsearch/tree/master/examples/next
+
+const Page = (props) => {
+  const { router, page, seoProps, ...restProps } = props;
+
+  const setStateId = React.useRef();
+  const [searchState, setSearchState] = useState(
+    pathToSearchState(router.asPath)
+  );
+
+  const onSearchStateChange = (nextSearchState) => {
+    clearTimeout(setStateId);
+
+    setStateId.current = setTimeout(() => {
+      const href = searchStateToURL(searchState);
+
+      router.push(href, href, {
+        shallow: true,
+      });
+    }, DEBOUNCE_TIME);
+
+    setSearchState(nextSearchState);
+  };
+
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <>
+      <App
+        {...DEFAULT_PROPS}
+        searchState={searchState}
+        resultsState={restProps.resultsState}
+        onSearchStateChange={onSearchStateChange}
+        createURL={createURL}
+      />
+    </>
+  );
+};
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+Page.getInitialProps = async (context) => {
+  const { req, res, query, ...restProps } = context;
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
+  const searchState = pathToSearchState(restProps.asPath);
+  const resultsState = await findResultsState(App, {
+    ...DEFAULT_PROPS,
+    searchState,
+  });
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+  return {
+    resultsState,
+    searchState,
+  };
+};
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
-  )
-}
+export default withRouter(Page);
