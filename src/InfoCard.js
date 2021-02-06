@@ -47,10 +47,10 @@ export default function InfoCard({
           color="textSecondary"
           gutterBottom
         >
-          {series}
+          {series} - Season {season} - Episode {number}
         </Typography>
         <Typography variant="h5" component="h2">
-          {title} - Season {season} - Episode {number}
+          {title}
         </Typography>
         <Typography className={classes.pos} color="textSecondary">
           {month}-{day}-{year}
